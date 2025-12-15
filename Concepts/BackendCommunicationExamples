@@ -1,0 +1,166 @@
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.WebSocket;
+import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.util.concurrent.CompletionStage;
+
+/**
+ * Ejemplos modernos en Java 21 de:
+ *
+ * 1. HTTP (cliente request–response)
+ * 2. WebSocket (comunicación bidireccional persistente)
+ * 3. gRPC (modelo RPC con contratos)
+ *
+ * Código enfocado en conceptos, no en frameworks pesados.
+ */
+public class BackendCommunicationExamples {
+
+    /* =========================================================
+       HTTP (JAVA HTTP CLIENT)
+       ========================================================= */
+
+    /**
+     * Ejemplo de cliente HTTP usando java.net.http (Java 11+).
+     * Modelo clásico request–response.
+     */
+    public static void httpExample() throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://api.example.com/data"))
+                .GET()
+                .header("Accept", "application/json")
+                .build();
+
+        HttpResponse<String> response =
+                client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        int status = response.statusCode();
+        String body = response.body();
+    }
+
+    /* =========================================================
+       WEBSOCKET
+       ========================================================= */
+
+    /**
+     * Listener WebSocket.
+     * Permite recibir mensajes del servidor de forma asíncrona.
+     */
+    static class SimpleWebSocketListener implements WebSocket.Listener {
+
+        @Override
+        public void onOpen(WebSocket webSocket) {
+            webSocket.request(1);
+        }
+
+        @Override
+        public CompletionStage<?> onText(
+                WebSocket webSocket,
+                CharSequence data,
+                boolean last
+        ) {
+            webSocket.request(1);
+            return null;
+        }
+
+        @Override
+        public CompletionStage<?> onBinary(
+                WebSocket webSocket,
+                ByteBuffer data,
+                boolean last
+        ) {
+            webSocket.request(1);
+            return null;
+        }
+
+        @Override
+        public CompletionStage<?> onClose(
+                WebSocket webSocket,
+                int statusCode,
+                String reason
+        ) {
+            return null;
+        }
+
+        @Override
+        public void onError(WebSocket webSocket, Throwable error) {
+        }
+    }
+
+    /**
+     * Cliente WebSocket.
+     * Conexión persistente, full-duplex.
+     */
+    public static void webSocketExample() {
+        HttpClient client = HttpClient.newHttpClient();
+
+        client.newWebSocketBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .buildAsync(
+                        URI.create("wss://example.com/socket"),
+                        new SimpleWebSocketListener()
+                )
+                .thenAccept(ws -> ws.sendText("Hola servidor", true));
+    }
+
+    /* =========================================================
+       gRPC (MODELO)
+       ========================================================= */
+
+    /**
+     * Ejemplo conceptual de gRPC.
+     *
+     * En un proyecto real:
+     * 1. Se define un archivo .proto
+     * 2. Se genera código cliente/servidor
+     * 3. Se usa un stub tipado
+     *
+     * Aquí se muestra la estructura mental.
+     */
+    static class GrpcConcept {
+
+        /**
+         * Representa una llamada RPC sincrónica.
+         */
+        public void unaryCall() {
+            /*
+             * GreeterGrpc.GreeterBlockingStub stub =
+             *     GreeterGrpc.newBlockingStub(channel);
+             *
+             * HelloReply reply =
+             *     stub.sayHello(HelloRequest.newBuilder()
+             *         .setName("Ventana")
+             *         .build());
+             */
+        }
+
+        /**
+         * Representa streaming bidireccional.
+         */
+        public void bidirectionalStreaming() {
+            /*
+             * StreamObserver<Request> requestObserver =
+             *     stub.chat(responseObserver);
+             *
+             * requestObserver.onNext(...);
+             * requestObserver.onCompleted();
+             */
+        }
+    }
+
+    /* =========================================================
+       MAIN
+       ========================================================= */
+
+    public static void main(String[] args) throws Exception {
+        httpExample();
+        webSocketExample();
+    }
+}
